@@ -1,6 +1,0 @@
-development:
-  clients:
-    default:
-      uri: mongodb+srv://anishsingh0106:FH+5FUy-E_mFh3p@cluster0.643a9z7.mongodb.net/test?retryWrites=true&w=majority
-      options:
-        server_selection_timeout: 5
