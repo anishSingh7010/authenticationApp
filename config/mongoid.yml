@@ -1,0 +1,6 @@
+development:
+  clients:
+    default:
+      uri: <%= ENV['MONGO_CLUSTER'] %>
+      options:
+        server_selection_timeout: 5
