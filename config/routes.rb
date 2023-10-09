@@ -5,4 +5,5 @@ Rails.application.routes.draw do
   # root "articles#index"
   post "/register", action: :create, controller: :users
   post "/login", action: :login, controller: :users
+  post "/my-account", action: :my_account, controller: :users
 end

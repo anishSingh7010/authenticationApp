@@ -1,12 +1,6 @@
 class UsersController < ApplicationController
   before_action :set_user, only: %i[ show update destroy ]
-
-  # GET /users
-  def index
-    @users = User.all
-
-    render json: @users
-  end
+  before_action :authorize, only: %i[ my_account ]
 
   # POST /users
   def create
@@ -20,20 +14,7 @@ class UsersController < ApplicationController
     end
   end
 
-  # PATCH/PUT /users/1
-  def update
-    if @user.update(user_params)
-      render json: @user
-    else
-      render json: @user.errors, status: :unprocessable_entity
-    end
-  end
-
-  # DELETE /users/1
-  def destroy
-    @user.destroy
-  end
-
+  # POST /login
   def login
     # email and password need to be present
     if (!params[:email])
@@ -45,8 +26,6 @@ class UsersController < ApplicationController
       render json: {msg: "Password is required."}, status: :bad_request
       return
     end
-
-    puts params[:email]
     
     begin
       @user = User.find_by(email: params[:email])
@@ -70,6 +49,41 @@ class UsersController < ApplicationController
     render json: {msg: "Login successful", "email": @user.email, "access_token": token}, status: :ok
   end
 
+  # POST/my-account
+  def my_account
+    render json: @user, status: :ok
+    @user
+  end
+
+  def authorize
+    # { Authorization: 'Bearer <token>' }, token needs to be present and should have word bearer preceding the token
+    token = ''
+    begin
+    if !request.headers['Authorization']
+      raise StandardError.new "Token is not valid"
+    end
+
+    auth_header = request.headers['Authorization']
+    if auth_header.downcase.include? "bearer"
+      token = auth_header.split(' ')[1]
+    else
+      raise StandardError.new "Token is not valid"
+    end
+    rescue => error
+      render json: {msg: error}, status: :bad_request
+      return
+    end
+    # decode token and compare it's validity
+    begin
+      decoded_token = decode_token(token)
+      email = decoded_token[0]['email']
+      @user = User.find_by(email: email)
+      rescue => error
+        #token decode failed; either token is invalid or expired
+        render json: {msg: "Please login again."}, status: :unauthorized  
+    end
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_user
@@ -82,6 +96,11 @@ class UsersController < ApplicationController
     end
 
     def encode_token
+      # expiry set after 2 mins
       JWT.encode({email: @user.email}, ENV["ACCESS_TOKEN_SECRET"], "HS256")
+    end
+
+    def decode_token(token)
+      JWT.decode(token, ENV["ACCESS_TOKEN_SECRET"], true, { algorithm: 'HS256' })
     end
 end
